@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Threat Intel System</title>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/justice.css?v=2.5">
+</head>
+
+<body id="top">
+
+  <div class="scanline-overlay"></div>
+  <div class="noise-overlay"></div>
+  <canvas id="hexCanvas"></canvas>
+  <div class="data-streams" id="dataStreams"></div>
+
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="logo-wrapper">
+        <img src="assets/images/WhatsApp Image 2026-01-07 at 9.59.21 PM.jpeg" class="logo" alt="logo" width="40" height="40">
+        <div class="logo-ping"></div>
+      </div>
+      <div class="brand-block">
+        <span class="brand" data-text="ThreatIntel">ThreatIntel</span>
+        <span class="brand-sub">Standalone Service v1.0</span>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <a href="index.html" class="nav-link"><i class='bx bx-grid-alt'></i><span>Dashboard</span></a>
+      <a href="modules/threat-intel/threat-intel.html" class="nav-link"><i class='bx bx-shield-quarter'></i><span>Threat Intel</span></a>
+    </div>
+
+    <div class="nav-right">
+      <div class="status-cluster">
+        <div class="status-dot"></div>
+        <span class="system-status">SYSTEMS ONLINE</span>
+      </div>
+      <div class="clock-display" id="clockDisplay">00:00:00</div>
+    </div>
+  </nav>
+
+  <div class="hero-section">
+    <div class="hero-text">
+      <div class="hero-badge">⬡ INTELLIGENCE MODULE</div>
+      <h1 class="hero-title">Threat <span class="accent">Analysis</span></h1>
+      <p class="hero-sub">Enter an indicator (IP, Domain, URL, Hash) to cross-reference multiple threat feeds.</p>
+    </div>
+  </div>
+
+  <div class="container" style="justify-content: center; display: flex; flex-wrap: wrap;">
+
+    <!-- THREAT INTELLIGENCE CARD -->
+    <div class="scan-box" id="scanBox7">
+      <div class="card-glow" style="background: radial-gradient(circle, rgba(0,212,255,0.1) 0%, transparent 70%)"></div>
+      <div class="card-corner tl"></div>
+      <div class="card-corner tr"></div>
+      <div class="card-corner bl"></div>
+      <div class="card-corner br"></div>
+      <div class="scan-line-anim"
+        style="animation-delay: 2s; background: linear-gradient(90deg, transparent, #00d4ff, transparent); box-shadow: 0 0 12px #00d4ff;">
+      </div>
+      <div class="card-badge"
+        style="color:rgba(0,212,255,0.7);border-color:rgba(0,212,255,0.2);background:rgba(0,212,255,0.05)">METHOD 01
+      </div>
+      <div class="icon-wrapper">
+        <i class='bx bx-shield-quarter' style="color:#00d4ff;filter:drop-shadow(0 0 16px #00d4ff)"></i>
+        <div class="icon-rings">
+          <div class="ring r1" style="border-color:rgba(0,212,255,0.25)"></div>
+          <div class="ring r2" style="border-color:rgba(0,212,255,0.2)"></div>
+          <div class="ring r3" style="border-color:rgba(0,212,255,0.15)"></div>
+        </div>
+      </div>
+      <h2>Threat Intelligence</h2>
+      <p>Multi-provider threat lookup engine aggregating VirusTotal, AbuseIPDB, and AlienVault OTX with 24h caching</p>
+      <div class="card-divider"></div>
+      <div class="card-meta">
+        <span><i class='bx bx-check-shield'></i> 3 Providers</span>
+        <span><i class='bx bx-time'></i> Async Scan</span>
+      </div>
+      <a href="modules/threat-intel/threat-intel.html" class="scan-btn" data-type="threat_intel"
+        style="border-color:#00d4ff;color:#00d4ff;background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(0,212,255,0.03))">
+        <span class="btn-text">Launch Scanner</span>
+        <span class="btn-arrow"><i class='bx bx-right-arrow-alt'></i></span>
+        <div class="btn-shine"></div>
+      </a>
+    </div>
+
+  </div>
+
+  <div class="status-bar">
+    <div class="status-bar-item"><i class='bx bx-cpu'></i> CPU: <span id="cpuVal">34%</span></div>
+    <div class="status-bar-item"><i class='bx bx-data'></i> API Status: <span class="ok">LIVE</span></div>
+    <div class="status-bar-item"><i class='bx bx-shield-quarter'></i> Threat Level: <span class="warn">LOW</span></div>
+  </div>
+
+  <script src="assets/js/justice.js?v=2.5"></script>
+</body>
+</html>

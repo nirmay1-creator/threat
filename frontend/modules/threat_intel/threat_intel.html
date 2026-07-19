@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <meta charset="UTF-8">
+  <title>JusticeFlowX — Threat Intelligence</title>
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&amp;family=Rajdhani:wght@400;500;600;700&amp;family=Exo+2:wght@300;400;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/justice.css">
+  <style>
+    .threat-layout { display: flex; gap: 20px; padding: 20px; height: calc(100vh - 70px); position: relative; z-index: 2; }
+    .search-panel { width: 350px; background: rgba(5, 20, 40, 0.88); border: 1px solid rgba(0, 245, 255, 0.18); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+    .results-panel { flex: 1; background: rgba(5, 20, 40, 0.88); border: 1px solid rgba(0, 245, 255, 0.18); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 20px; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+    .results-panel.visible { opacity: 1; pointer-events: auto; }
+    
+    .panel-header { font-family: 'Rajdhani', sans-serif; font-size: 16px; color: var(--cyan); border-bottom: 1px solid rgba(0,245,255,0.2); padding-bottom: 10px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+    .input-box { background: rgba(0, 20, 40, 0.6); border: 1px solid rgba(0, 245, 255, 0.3); color: var(--cyan); padding: 12px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; width: 100%; outline: none; font-size: 16px; text-align: center; }
+    .scan-btn { background: rgba(0, 245, 255, 0.1); border: 1px solid var(--cyan); color: var(--cyan); padding: 12px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; font-size: 16px; transition: all 0.3s; margin-top: 10px; }
+    .scan-btn:hover { background: rgba(0, 245, 255, 0.2); box-shadow: 0 0 15px rgba(0, 245, 255, 0.3); }
+
+    .threat-score-wrap { display: flex; align-items: center; justify-content: center; position: relative; margin: 20px 0; }
+    .threat-score-circle { width: 150px; height: 150px; border-radius: 50%; border: 4px solid var(--cyan); display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 0 30px rgba(0,245,255,0.2); }
+    .threat-score-val { font-family: 'Rajdhani', sans-serif; font-size: 48px; font-weight: bold; color: var(--cyan); line-height: 1; }
+    .threat-score-label { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: rgba(180, 220, 240, 0.6); margin-top: 5px; }
+
+    .threat-score-circle.danger { border-color: var(--red); box-shadow: 0 0 30px rgba(255, 43, 94, 0.3); }
+    .threat-score-circle.danger .threat-score-val { color: var(--red); }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+    .info-card { background: rgba(0, 245, 255, 0.05); border: 1px solid rgba(0, 245, 255, 0.15); border-radius: 6px; padding: 12px; }
+    .info-card .label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(180, 220, 240, 0.6); }
+    .info-card .value { font-family: 'Rajdhani', sans-serif; font-size: 18px; color: var(--cyan); font-weight: bold; margin-top: 4px; }
+    
+    .ports-list { font-family: 'Share Tech Mono', monospace; font-size: 13px; margin-top: 15px; display: flex; flex-direction: column; gap: 8px; }
+    .port-item { display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(0, 245, 255, 0.2); padding-bottom: 4px; }
+    .port-item.open { color: var(--red); }
+    .port-item.filtered { color: var(--warn); }
+    .port-item.closed { color: var(--green); }
+
+    #loadingOverlay { position: absolute; inset: 0; background: rgba(2, 8, 16, 0.9); z-index: 10; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 20px; border-radius: 8px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(0,245,255,0.2); border-top-color: var(--cyan); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  
+  
+  <div class="scanline-overlay"></div>
+  <div class="noise-overlay"></div>
+  <canvas id="hexCanvas"></canvas>
+
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="logo-wrapper">
+        <img src="../../assets/images/WhatsApp Image 2026-01-07 at 9.59.21 PM.jpeg" class="logo" alt="logo" width="40" height="40">
+        <div class="logo-ping"></div>
+      </div>
+      <div class="brand-block">
+        <span class="brand" data-text="JusticeFlowX">JusticeFlowX</span>
+        <span class="brand-sub">Verification System v2.4</span>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <a href="../../index.html" class="nav-link"><i class='bx bx-grid-alt'></i><span>Dashboard</span></a>
+      <a href="../case/case.html" class="nav-link"><i class='bx bx-folder'></i><span>Case</span></a>
+      <a href="../forensics/forensic.html" class="nav-link"><i class='bx bx-search-alt'></i><span>Forensics</span></a>
+      <a href="../network/network.html" class="nav-link"><i class='bx bx-network-chart'></i><span>Network</span></a>
+      <a href="../threat_intel/threat_intel.html" class="nav-link"><i class='bx bx-shield-quarter'></i><span>Threat Intel</span></a>
+      <a href="../law/law.html" class="nav-link"><i class='bx bxs-book-reader'></i><span>Law</span></a>
+      <a href="../system/system.html" class="nav-link"><i class='bx bx-server'></i><span>System</span></a>
+    </div>
+
+    <div class="nav-right">
+      <div class="status-cluster">
+        <div class="status-dot"></div>
+        <span class="system-status">SYSTEMS ONLINE</span>
+      </div>
+      <div class="clock-display" id="clockDisplay">00:00:00</div>
+      <div class="menu">
+        <button class="menu-trigger" id="menuBtn" aria-label="Menu">
+          <i class='bx bx-dots-vertical-rounded'></i>
+        </button>
+        <div class="dropdown" id="menuDropdown">
+          <div class="dropdown-header">QUICK ACCESS</div>
+          <a href="modules/case/case-report.html"><i class='bx bx-file'></i> Case Reports</a>
+          <a href="modules/system/infraction.html"><i class='bx bx-list-ul'></i> System Logs</a>
+          <a href="modules/system/system.html"><i class='bx bx-shield'></i> System Health</a>
+          <a href="modules/case/case-analysis.html"><i class='bx bx-brain'></i> AI Decision Support</a>
+          <a href="modules/forensics/forensic.html"><i class='bx bx-search-alt'></i> Document Forensics</a>
+          <a href="modules/network/network.html"><i class='bx bx-network-chart'></i> Network Detection</a>
+          <div class="dropdown-divider"></div>
+          <a href="#" id="logoutBtn" class="logout-link"><i class='bx bx-log-out'></i> Logout</a>
+        </div>
+      </div>
+    </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const navLinks = document.querySelectorAll('.nav-center .nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          const targetHref = this.getAttribute('href');
+          if (targetHref && !targetHref.includes('index.html') && targetHref !== '#') {
+            e.preventDefault();
+            showGlobalAuthModal(targetHref, this.querySelector('span').innerText);
+          }
+        });
+      });
+
+      function showGlobalAuthModal(redirectUrl, moduleName) {
+        let modalColor = '#00f5ff';
+        let modalGlow = 'rgba(0,245,255,0.15)';
+        let iconClass = 'bx-shield-quarter';
+        let badgeText = 'SECURE CHANNEL';
+        
+        let type = moduleName.toLowerCase();
+        if (type.includes('criminal')) { modalColor = '#ff2b5e'; modalGlow = 'rgba(255,43,94,0.15)'; iconClass = 'bx-user'; badgeText = 'CLASS-A RESTRICTED'; }
+        else if (type.includes('case')) { modalColor = '#00ff88'; modalGlow = 'rgba(0,255,136,0.15)'; iconClass = 'bx-folder'; badgeText = 'ACTIVE CASE CONTROL'; }
+        else if (type.includes('evidence')) { modalColor = '#ffb800'; modalGlow = 'rgba(255,184,0,0.15)'; iconClass = 'bx-archive'; badgeText = 'CHAIN OF CUSTODY'; }
+        else if (type.includes('biometric')) { modalColor = '#7b2fff'; modalGlow = 'rgba(123,47,255,0.15)'; iconClass = 'bx-fingerprint'; badgeText = 'BIOMETRIC INDEX'; }
+        else if (type.includes('network')) { modalColor = '#ff4757'; modalGlow = 'rgba(255,71,87,0.15)'; iconClass = 'bx-network-chart'; badgeText = 'LIVE TRAFFIC DEEP'; }
+        else if (type.includes('threat')) { modalColor = '#ff4757'; modalGlow = 'rgba(255,71,87,0.15)'; iconClass = 'bx-error-alt'; badgeText = 'CRITICAL INTELLIGENCE'; }
+        else if (type.includes('forensic')) { modalColor = '#ff9f43'; modalGlow = 'rgba(255,159,67,0.15)'; iconClass = 'bx-line-chart'; badgeText = 'FORENSICS PORTAL'; }
+        else if (type.includes('law')) { modalColor = '#ff9f43'; modalGlow = 'rgba(255,159,67,0.15)'; iconClass = 'bxs-book-reader'; badgeText = 'PUBLIC LEGAL INDEX'; }
+        else if (type.includes('system')) { modalColor = '#00d4ff'; modalGlow = 'rgba(0,212,255,0.15)'; iconClass = 'bx-server'; badgeText = 'CORE SYSTEM CONTROL'; }
+
+        if (!document.getElementById('global-auth-styles')) {
+          const style = document.createElement('style');
+          style.id = 'global-auth-styles';
+          style.innerHTML = `
+            .g-auth-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 6, 12, 0.88); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 9998; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); padding-top: 50px; }
+            .g-auth-overlay.show { opacity: 1; pointer-events: auto; }
+            .g-auth-modal { position: relative; background: rgba(5,15,32,0.96); border-radius: 20px; padding: 48px 40px; width: 90%; max-width: 420px; text-align: center; transform: translateY(30px) scale(0.95); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); overflow: hidden; }
+            .g-auth-overlay.show .g-auth-modal { transform: translateY(0) scale(1); }
+            
+            /* Sweep Animation line */
+            .g-auth-modal::after { content: ''; position: absolute; top: 0; left: -100%; width: 200%; height: 3px; background: linear-gradient(90deg, transparent, var(--m-color, #00f5ff), transparent); animation: borderSweep 3.5s infinite linear; }
+            @keyframes borderSweep { 0% { left: -100%; } 100% { left: 100%; } }
+
+            /* Header Bar */
+            .g-auth-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 24px; margin: -48px -40px 30px -40px; background: rgba(1, 6, 15, 0.4); }
+            .g-auth-title { font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 700; color: var(--m-color, #00f5ff); text-transform: uppercase; letter-spacing: 1.5px; }
+            .g-auth-close { background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.08) !important; color: #8fa0b5 !important; font-size: 18px !important; cursor: pointer; display: flex !important; align-items: center; justify-content: center; width: 28px !important; height: 28px !important; border-radius: 6px !important; transition: all 0.2s; padding: 0 !important; }
+            .g-auth-close:hover { background: rgba(255,71,87,0.1) !important; border-color: #ff4757 !important; color: #ff4757 !important; }
+
+            .g-auth-badge { display: inline-flex; font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--m-color, #00f5ff); background: var(--m-glow, rgba(0,245,255,0.06)); border: 1px solid var(--m-color, #00f5ff); padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; text-transform: uppercase; text-shadow: 0 0 10px var(--m-glow); }
+
+            .g-auth-icon { width: 68px; height: 68px; margin: 0 auto 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; border: 1px solid var(--m-color, #00f5ff); background: var(--m-glow, rgba(0,245,255,0.1)); color: var(--m-color, #00f5ff); box-shadow: 0 0 25px var(--m-glow, rgba(0,245,255,0.2)); transition: all 0.3s ease; }
+            .g-auth-modal:hover .g-auth-icon { transform: scale(1.05) rotate(5deg); }
+
+            .g-auth-modal h2 { font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+            .g-auth-modal p { color: #8fa0b5; font-size: 14px; margin-bottom: 28px; font-family: 'Exo 2', sans-serif; }
+            
+            .g-auth-input-wrap { position: relative; margin-bottom: 24px; }
+            .g-auth-modal input { width: 100%; padding: 16px 20px; background: rgba(1, 6, 15, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #fff; font-size: 18px; font-family: 'Share Tech Mono', monospace; text-align: center; outline: none; transition: all 0.3s ease; letter-spacing: 4px; }
+            .g-auth-modal input:focus { border-color: var(--m-color, #00f5ff) !important; box-shadow: 0 0 20px var(--m-glow, rgba(0,245,255,0.15)), inset 0 0 10px rgba(0,0,0,0.5) !important; }
+            
+            .g-auth-submit-btn { width: 100% !important; padding: 16px !important; border-radius: 10px !important; font-family: 'Rajdhani', sans-serif !important; font-size: 16px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 1px !important; cursor: pointer !important; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important; background: var(--m-glow, rgba(0,245,255,0.1)) !important; color: var(--m-color, #00f5ff) !important; border: 1px solid var(--m-color, #00f5ff) !important; box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important; }
+            .g-auth-submit-btn:hover { background: var(--m-color, #00f5ff) !important; color: #020810 !important; box-shadow: 0 0 25px var(--m-glow, rgba(0,245,255,0.45)) !important; transform: translateY(-1px); }
+            .g-auth-submit-btn:active { transform: translateY(1px) scale(0.98); }
+
+            .g-auth-error { display: none; color: #ff4757; font-size: 13px; margin-top: 16px; font-family: 'Share Tech Mono', monospace; letter-spacing: 1.5px; animation: shake 0.3s ease-in-out; }
+            @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+          `;
+          document.head.appendChild(style);
+        }
+
+        let overlay = document.getElementById('global-auth-overlay');
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.id = 'global-auth-overlay';
+          overlay.className = 'g-auth-overlay';
+          document.body.appendChild(overlay);
+        }
+
+        overlay.style.setProperty('--m-color', modalColor);
+        overlay.style.setProperty('--m-glow', modalGlow);
+
+        overlay.innerHTML = `
+          <div class="g-auth-modal" style="border: 1px solid ${modalColor}; box-shadow: 0 20px 60px rgba(0,0,0,0.65), 0 0 40px ${modalGlow}, inset 0 1px 1px rgba(255,255,255,0.04);">
+            <div class="g-auth-header">
+              <span class="g-auth-title">${moduleName} Terminal</span>
+              <button class="g-auth-close" onclick="document.getElementById('global-auth-overlay').classList.remove('show')">&times;</button>
+            </div>
+            <div class="g-auth-badge">${badgeText}</div>
+            <div class="g-auth-icon"><i class='bx ${iconClass}'></i></div>
+            <h2>Authentication</h2>
+            <p>Clearance level required to initialize terminal link</p>
+            <div class="g-auth-input-wrap">
+              <input type="password" id="gAuthInput" placeholder="CLEARANCE CODE" autocomplete="off">
+            </div>
+            <button class="g-auth-submit-btn" id="gAuthBtn">AUTHENTICATE SYSTEM</button>
+            <div class="g-auth-error" id="gAuthError"><i class='bx bx-error-alt'></i> INVALID SECURITY CODE</div>
+          </div>
+        `;
+
+        document.getElementById('gAuthInput').addEventListener('focus', function() { this.style.borderColor = modalColor; });
+        document.getElementById('gAuthInput').addEventListener('blur', function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
+
+        const btn = document.getElementById('gAuthBtn');
+        btn.addEventListener('mouseenter', function() { this.style.background = modalColor; this.style.color = '#000'; });
+        btn.addEventListener('mouseleave', function() { this.style.background = modalGlow; this.style.color = modalColor; });
+
+        setTimeout(() => overlay.classList.add('show'), 10);
+        const input = document.getElementById('gAuthInput');
+        setTimeout(() => input.focus(), 100);
+
+        const checkAuth = () => {
+          if (input.value === 'justice123') {
+            window.location.href = redirectUrl;
+          } else {
+            const errDiv = document.getElementById('gAuthError');
+            errDiv.style.display = 'block';
+            errDiv.style.animation = 'none';
+            void errDiv.offsetWidth; // trigger reflow
+            errDiv.style.animation = 'shake 0.3s ease-in-out';
+            input.value = '';
+          }
+        };
+        btn.addEventListener('click', checkAuth);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAuth(); });
+      }
+    });
+  </script>
+</nav>
+
+  <!-- SECONDARY NAVBAR (Injected by Script) -->
+  <div class="secondary-navbar" id="secondaryNavbar" style="display: none;"></div>
+
+  <div class="threat-layout">
+    <!-- Search Panel -->
+    <div class="search-panel">
+      <div class="panel-header"><i class='bx bx-target-lock'></i> TARGET SELECTION</div>
+      
+      <div style="margin-top: 20px;">
+        <input class="input-box" type="text" id="targetIp" placeholder="Enter IP or Domain..." value="192.168.1.44">
+      </div>
+      
+      <button id="scanBtn" class="scan-btn"><i class='bx bx-radar'></i> INITIATE SCAN</button>
+
+      <div style="margin-top: auto; font-family:'Share Tech Mono', monospace; font-size:11px; color:rgba(180,220,240,0.5); line-height: 1.5;">
+        <i class='bx bx-info-circle'></i> This module queries global threat feeds, ASN databases, and performs an active port scan against the target.
+      </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="results-panel" id="resultsPanel">
+      <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div style="font-family:'Rajdhani',sans-serif; color:var(--cyan); font-size:18px;">QUERYING THREAT INTELLIGENCE...</div>
+      </div>
+
+      <div class="panel-header"><i class='bx bx-data'></i> ANALYSIS RESULTS</div>
+      
+      <div style="display:flex; gap: 40px;">
+        <div style="flex:1;">
+          <div class="threat-score-wrap">
+            <div class="threat-score-circle" id="scoreCircle">
+              <div class="threat-score-val" id="scoreVal">0</div>
+              <div class="threat-score-label">THREAT SCORE</div>
+            </div>
+          </div>
+          <div style="text-align:center; font-family:'Rajdhani',sans-serif; font-size:24px; color:var(--cyan);" id="targetName">UNKNOWN</div>
+          <div style="text-align:center; font-family:'Share Tech Mono',monospace; font-size:14px; color:rgba(255,255,255,0.6);" id="targetNotes">NO DATA</div>
+        </div>
+
+        <div style="flex:2;">
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="label">LOCATION / GEO</div>
+              <div class="value" id="resLocation">--</div>
+            </div>
+            <div class="info-card">
+              <div class="label">ASN / ISP</div>
+              <div class="value" id="resAsn">--</div>
+            </div>
+            <div class="info-card">
+              <div class="label">KNOWN ALIASES</div>
+              <div class="value" id="resAliases">--</div>
+            </div>
+            <div class="info-card">
+              <div class="label">LAST SEEN</div>
+              <div class="value" id="resLastSeen">--</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 30px;">
+            <div class="panel-header" style="border:none; padding:0; margin-bottom:10px;"><i class='bx bx-door-open'></i> PORT SCAN RESULTS</div>
+            <div class="ports-list" id="portsList">
+              <!-- Ports injected via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="threat_intel.js"></script>
+<script src="../../assets/js/justice.js"></script>
+</body>
+</html>
+
+

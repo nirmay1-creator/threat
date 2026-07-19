@@ -38,5 +38,14 @@ services:
     volumes:
       - ./backend:/app
 
+  threat-intel-frontend:
+    image: nginx:alpine
+    container_name: threat-intel-frontend
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+
 volumes:
   threat_intel_data:
